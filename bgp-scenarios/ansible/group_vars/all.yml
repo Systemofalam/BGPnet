@@ -1,0 +1,29 @@
+bgp_base_dir: "{{ playbook_dir }}/../runtime"
+
+bgp_node_src: "{{ playbook_dir }}/../mini-node/bgp_node"
+bgp_node_bin: "{{ bgp_base_dir }}/mini-node/bgp_node"
+
+bgp_scenario_src: "{{ playbook_dir }}/../scenarios/generated/rv2_20230101_1h/"
+bgp_scenario_dir: "{{ bgp_base_dir }}/rv2_20230101_1h_nodes"
+
+bgp_sessions_by_host:
+
+  as34224:
+    asn: 34224
+    router_id: 1.1.1.1
+    sessions:
+      - name: "as34224_to_6939"
+        mode: "server"
+        listen_port: 1179
+        scenario: "node_34224.scenario"
+
+  as6939:
+    asn: 6939
+    router_id: 2.2.2.2
+    sessions:
+      - name: "as6939_to_34224"
+        mode: "client"
+        peer_ip: "127.0.0.1"
+        peer_port: 1179
+        peer_asn: 34224
+        scenario: "node_6939.scenario"

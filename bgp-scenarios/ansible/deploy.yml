@@ -1,0 +1,7 @@
+---
+- name: Deploy BGP mini-node distributed system
+  hosts: routers
+  gather_facts: yes   # ok, no sudo needed
+
+  roles:
+    - bgp_node

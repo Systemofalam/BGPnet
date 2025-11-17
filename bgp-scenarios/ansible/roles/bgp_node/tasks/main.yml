@@ -1,0 +1,90 @@
+---
+- name: "Créer base directory {{ bgp_base_dir }}"
+  ansible.builtin.file:
+    path: "{{ bgp_base_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: "Créer sous-dossiers mini-node et scenarios"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ bgp_base_dir }}/mini-node"
+    - "{{ bgp_scenario_dir }}"
+
+- name: "Copier le binaire bgp_node"
+  ansible.builtin.copy:
+    src: "{{ bgp_node_src }}"
+    dest: "{{ bgp_node_bin }}"
+    mode: "0755"
+
+- name: "Copier les fichiers de scénario RouteViews"
+  ansible.builtin.copy:
+    src: "{{ bgp_scenario_src }}/"
+    dest: "{{ bgp_scenario_dir }}/"
+    mode: "0644"
+
+- name: "Set host_cfg variable for this router"
+  ansible.builtin.set_fact:
+    host_cfg: "{{ bgp_sessions_by_host[inventory_hostname] | default({'asn': 0, 'router_id': '0.0.0.0', 'sessions': []}) }}"
+
+- name: "Lancer les sessions BGP mini-node et attendre la fin"
+  ansible.builtin.shell: |
+    set -e
+    cd "{{ bgp_base_dir }}/mini-node"
+
+    echo "=== Lancement session {{ session.name }} (mode={{ session.mode }}, ASN={{ host_cfg.asn }}) ===" >&2
+
+    {{ bgp_node_bin }} \
+    {% if session.mode == "server" -%}
+      server {{ session.listen_port }} \
+      {{ host_cfg.asn }} \
+      {{ host_cfg.router_id }} \
+      {{ bgp_scenario_dir }}/{{ session.scenario }}
+    {% elif session.mode == "client" -%}
+      client {{ session.peer_ip }} {{ session.peer_port }} \
+      {{ host_cfg.asn }} \
+      {{ host_cfg.router_id }} \
+      {{ session.peer_asn }} \
+      {{ bgp_scenario_dir }}/{{ session.scenario }}
+    {% else -%}
+      echo "Unknown mode {{ session.mode }}" >&2
+      exit 1
+    {% endif %}
+  args:
+    executable: /bin/bash
+  loop: "{{ host_cfg.sessions }}"
+  loop_control:
+    loop_var: session
+  when: host_cfg.sessions | length > 0
+
+- name: "Créer les services systemd bgp_node-* pour chaque session (Linux only)"
+  ansible.builtin.template:
+    src: "bgp_node.service.j2"
+    dest: "/etc/systemd/system/bgp_node-{{ session.name }}.service"
+    mode: "0644"
+  loop: "{{ host_cfg.sessions }}"
+  loop_control:
+    loop_var: session
+  when:
+    - host_cfg.sessions | length > 0
+    - ansible_system == "Linux"
+
+- name: "Recharger systemd (Linux only)"
+  ansible.builtin.systemd:
+    daemon_reload: yes
+  when: ansible_system == "Linux"
+
+- name: "Activer et démarrer les services BGP de ce routeur (Linux only)"
+  ansible.builtin.systemd:
+    name: "bgp_node-{{ session.name }}.service"
+    enabled: yes
+    state: started
+  loop: "{{ host_cfg.sessions }}"
+  loop_control:
+    loop_var: session
+  when:
+    - host_cfg.sessions | length > 0
+    - ansible_system == "Linux"

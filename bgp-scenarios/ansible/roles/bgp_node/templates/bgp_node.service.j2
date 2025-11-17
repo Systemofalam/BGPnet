@@ -1,0 +1,33 @@
+[Unit]
+Description=BGP mini-node session {{ session.name }} (AS{{ host_cfg.asn }})
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory={{ bgp_base_dir }}/mini-node
+
+{% if session.mode == "server" %}
+ExecStart={{ bgp_node_bin }} \
+  server {{ session.listen_port }} \
+  {{ host_cfg.asn }} \
+  {{ host_cfg.router_id }} \
+  {{ bgp_scenario_dir }}/{{ session.scenario }}
+{% elif session.mode == "client" %}
+ExecStart={{ bgp_node_bin }} \
+  client {{ session.peer_ip }} {{ session.peer_port }} \
+  {{ host_cfg.asn }} \
+  {{ host_cfg.router_id }} \
+  {{ session.peer_asn }} \
+  {{ bgp_scenario_dir }}/{{ session.scenario }}
+{% else %}
+ExecStart=/bin/false
+{% endif %}
+
+Restart=on-failure
+RestartSec=3
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

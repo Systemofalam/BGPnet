@@ -1,0 +1,14 @@
+# Binaire compilé
+mini-node/bgp_node
+
+# Runtime généré par Ansible (logs, copies de scénarios)
+runtime/
+
+# Fichiers temporaires potentiels
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Archives de dev locales
+archive/dev_logs/

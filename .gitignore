@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+
+# libbgp build artefacts
+libbgp/src/*.o
+libbgp/src/*.lo
+libbgp/src/libbgp.la
+libbgp/test_libbgp
+libbgp/libtool
+libbgp/config.log
+libbgp/config.status
+libbgp/autom4te.cache/
+
+# CMake/Autotools junk (au cas où)
+libbgp/Makefile
+libbgp/src/Makefile
+
+# Python/éditeur divers
+*.swp
+*.swo
+*~
